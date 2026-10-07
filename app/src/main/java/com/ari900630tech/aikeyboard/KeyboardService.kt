@@ -57,7 +57,7 @@ class KeyboardService : InputMethodService() {
         val rows = if(numbers) listOf("1234567890","@#₪%&*()-_+",".,!?/:;")
         else if(hebrew) he else en
         rows.forEach { chars ->
-            val r=LinearLayout(this)
+            val r=LinearLayout(this).apply { layoutDirection = if (hebrew) View.LAYOUT_DIRECTION_RTL else View.LAYOUT_DIRECTION_LTR }
             chars.forEach { c ->
                 val shown=if(!hebrew&&!numbers&&shift)c.uppercase(Locale.US) else c.toString()
                 r.addView(btn(shown,1f){commit(shown)})
@@ -65,14 +65,15 @@ class KeyboardService : InputMethodService() {
             box.addView(r,row())
         }
 
-        val bottom=LinearLayout(this)
-        bottom.addView(btn("⇧",1f){shift=!shift;drawKeyboard()})
-        bottom.addView(btn(if(hebrew)"EN" else "עב",1f){hebrew=!hebrew;numbers=false;shift=false;drawKeyboard()})
-        bottom.addView(btn(if(numbers)"ABC" else "123",1f){numbers=!numbers;drawKeyboard()})
-        bottom.addView(btn("📋",1f){drawClipboard()})
-        bottom.addView(btn("😊",1f){commit("😊")})
+        val bottom=LinearLayout(this).apply { layoutDirection = if (hebrew) View.LAYOUT_DIRECTION_RTL else View.LAYOUT_DIRECTION_LTR }
         bottom.addView(btn("⌫",1f){deleteOne()})
-        bottom.addView(btn("↵",1f){enter()})
+        bottom.addView(btn("↵",0.9f){enter()})
+        bottom.addView(btn("😊",0.9f){commit("😊")})
+        bottom.addView(btn("📋",0.9f){drawClipboard()})
+        bottom.addView(btn("123",0.9f){numbers=!numbers;drawKeyboard()})
+        bottom.addView(btn(if(hebrew)"EN" else "עב",0.9f){hebrew=!hebrew;numbers=false;shift=false;drawKeyboard()})
+        bottom.addView(btn("רווח",2.8f){commit(" ")})
+        bottom.addView(btn("⇧",0.9f){shift=!shift;drawKeyboard()})
         box.addView(bottom,row())
     }
 
