@@ -7,6 +7,7 @@ import android.inputmethodservice.InputMethodService
 import android.view.*
 import android.view.inputmethod.EditorInfo
 import android.widget.*
+import androidx.core.view.setPadding
 import java.util.Locale
 
 class KeyboardService : InputMethodService() {
@@ -78,7 +79,7 @@ class KeyboardService : InputMethodService() {
     private fun drawClipboard() {
         showingClipboard=true
         box.removeAllViews()
-        val title=TextView(this).apply{text="📋  לוח ההעתקות";textSize=19f;gravity=Gravity.CENTER;padding=8}
+        val title=TextView(this).apply{text="📋  לוח ההעתקות";textSize=19f;gravity=Gravity.CENTER;setPadding(8,8,8,8)}
         box.addView(title,row())
         val controls=LinearLayout(this).apply{gravity=Gravity.CENTER}
         controls.addView(btn("חזרה",1f){drawKeyboard()})
@@ -113,7 +114,7 @@ class KeyboardService : InputMethodService() {
     private fun saveClip(text:String) {
         val old=clipboardItems().toMutableList()
         old.remove(text);old.add(0,text)
-        val pinned=prefs.getStringSet("pinned",emptySet()) ?: emptySet()
+        val pinned=clipPrefs.getStringSet("pinned",emptySet()) ?: emptySet()
         clipPrefs.edit().apply {
             old.take(50).forEachIndexed{index,value->putString("clip_$index",value)}
             putInt("clip_count",old.take(50).size)
@@ -156,7 +157,7 @@ class KeyboardService : InputMethodService() {
 
     private fun currentWord():String{
         val before=ic()?.getTextBeforeCursor(40,0)?.toString()?:return ""
-        return before.substringAfterLast(Regex("[\\s\\n\\t.,!?;:()\\[\\]{}"'/-]"))
+        return before.substringAfterLast(Regex("""[\s\n\t.,!?;:()\[\]{}"'/-]"""))
     }
 
     private fun replaceCurrentWord(word:String){
@@ -167,7 +168,7 @@ class KeyboardService : InputMethodService() {
 
     private fun commit(s:String){
         ic()?.commitText(s,1)
-        if(s.length>1||s[0].isLetter())if(s.contains(Regex("[\\s\\n\\t]")))learnCurrentWord()
+        if(s.isNotEmpty() && (s.length>1 || s[0].isLetter()) && s.contains(Regex("[\\s\\n\\t]"))) learnCurrentWord()
         drawSuggestionsOnly()
     }
 
@@ -182,7 +183,7 @@ class KeyboardService : InputMethodService() {
 
     private fun learnCurrentWord(){
         val before=ic()?.getTextBeforeCursor(80,0)?.toString()?:return
-        val word=before.trim().split(Regex("[\\s\\n\\t.,!?;:()\\[\\]{}"'/-]+")).lastOrNull().orEmpty()
+        val word=before.trim().split(Regex("""[\s\n\t.,!?;:()\[\]{}"'/-]+""")).lastOrNull().orEmpty()
         if(word.length>=2)learn(word)
     }
 
