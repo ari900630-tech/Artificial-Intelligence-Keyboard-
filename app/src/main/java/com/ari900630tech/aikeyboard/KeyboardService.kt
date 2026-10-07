@@ -157,7 +157,7 @@ class KeyboardService : InputMethodService() {
 
     private fun currentWord():String{
         val before=ic()?.getTextBeforeCursor(40,0)?.toString()?:return ""
-        return before.substringAfterLast(Regex("""[\s\n\t.,!?;:()\[\]{}"'/-]"""))
+        return before.split(Regex("""[\s\n\t.,!?;:()\[\]{}"\'/-]+""")).lastOrNull().orEmpty()
     }
 
     private fun replaceCurrentWord(word:String){
