@@ -1,0 +1,5 @@
+<resources>
+<string name="app_name">AI Keyboard</string>
+<string name="subtype_hebrew">עברית</string>
+<string name="subtype_english">English</string>
+</resources>
