@@ -4,7 +4,6 @@ import android.content.*
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.inputmethodservice.InputMethodService
-import android.text.ClipboardManager
 import android.view.*
 import android.view.inputmethod.EditorInfo
 import android.widget.*
@@ -17,8 +16,9 @@ class KeyboardService : InputMethodService() {
     private var showingClipboard = false
     private lateinit var box: LinearLayout
     private val prefs by lazy { getSharedPreferences("keyboard_data", Context.MODE_PRIVATE) }
+    private val clipPrefs by lazy { getSharedPreferences("clipboard_history", Context.MODE_PRIVATE) }
     private lateinit var clipboard: android.content.ClipboardManager
-    private val clipboardListener = ClipboardManager.OnPrimaryClipChangedListener { captureClipboard() }
+    private val clipboardListener = android.content.ClipboardManager.OnPrimaryClipChangedListener { captureClipboard() }
 
     private val he = listOf("קראטוןםפ","שדגכעיחלךף","זסבהנמצתץ")
     private val en = listOf("qwertyuiop","asdfghjkl","zxcvbnm")
@@ -105,8 +105,8 @@ class KeyboardService : InputMethodService() {
     }
 
     private fun clipboardItems():List<String> {
-        val all=(0 until prefs.getInt("clip_count",0)).mapNotNull{prefs.getString("clip_$it",null)}
-        val pinned=prefs.getStringSet("pinned",emptySet()) ?: emptySet()
+        val all=(0 until clipPrefs.getInt("clip_count",0)).mapNotNull{clipPrefs.getString("clip_$it",null)}
+        val pinned=clipPrefs.getStringSet("pinned",emptySet()) ?: emptySet()
         return (all.filter{pinned.contains(it)} + all.filterNot{pinned.contains(it)}).distinct().take(50)
     }
 
@@ -114,7 +114,7 @@ class KeyboardService : InputMethodService() {
         val old=clipboardItems().toMutableList()
         old.remove(text);old.add(0,text)
         val pinned=prefs.getStringSet("pinned",emptySet()) ?: emptySet()
-        prefs.edit().apply {
+        clipPrefs.edit().apply {
             old.take(50).forEachIndexed{index,value->putString("clip_$index",value)}
             putInt("clip_count",old.take(50).size)
             putStringSet("pinned",pinned)
@@ -124,29 +124,29 @@ class KeyboardService : InputMethodService() {
 
     private fun removeClip(text:String) {
         val list=clipboardItems().filter{it!=text}
-        val pinned=(prefs.getStringSet("pinned",emptySet()) ?: emptySet()).filter{it!=text}.toSet()
-        prefs.edit().clear().apply()
-        list.forEachIndexed{i,v->prefs.edit().putString("clip_$i",v).apply()}
-        prefs.edit().putInt("clip_count",list.size).putStringSet("pinned",pinned).apply()
+        val pinned=(clipPrefs.getStringSet("pinned",emptySet()) ?: emptySet()).filter{it!=text}.toSet()
+        clipPrefs.edit().clear().apply()
+        list.forEachIndexed{i,v->clipPrefs.edit().putString("clip_$i",v).apply()}
+        clipPrefs.edit().putInt("clip_count",list.size).putStringSet("pinned",pinned).apply()
     }
 
     private fun togglePin(text:String) {
-        val p=(prefs.getStringSet("pinned",emptySet()) ?: emptySet()).toMutableSet()
+        val p=(clipPrefs.getStringSet("pinned",emptySet()) ?: emptySet()).toMutableSet()
         if(!p.add(text))p.remove(text)
-        prefs.edit().putStringSet("pinned",p).apply()
+        clipPrefs.edit().putStringSet("pinned",p).apply()
     }
 
     private fun clearUnpinned() {
-        val p=prefs.getStringSet("pinned",emptySet()) ?: emptySet()
+        val p=clipPrefs.getStringSet("pinned",emptySet()) ?: emptySet()
         val keep=clipboardItems().filter{p.contains(it)}
-        prefs.edit().clear().apply()
-        keep.forEachIndexed{i,v->prefs.edit().putString("clip_$i",v).apply()}
-        prefs.edit().putInt("clip_count",keep.size).putStringSet("pinned",p).apply()
+        clipPrefs.edit().clear().apply()
+        keep.forEachIndexed{i,v->clipPrefs.edit().putString("clip_$i",v).apply()}
+        clipPrefs.edit().putInt("clip_count",keep.size).putStringSet("pinned",p).apply()
     }
 
     private fun suggestionsList():List<String>{
         val prefix=currentWord()
-        val learned=prefs.all.entries.mapNotNull{e->(e.value as? Int)?.let{e.key to it}}
+        val learned=prefs.all.entries.mapNotNull{e->if(e.key.startsWith("word_")) (e.key.removePrefix("word_") to (e.value as? Int ?: 0)) else null}
             .filter{it.first.startsWith(prefix,true)&&it.first.length>prefix.length}
             .sortedByDescending{it.second}.map{it.first}
         if(prefix.isEmpty())return learned.take(3).ifEmpty{if(hebrew)commonHe.take(3) else commonEn.take(3)}
